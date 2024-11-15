@@ -19,7 +19,7 @@ pipeline {
                               doGenerateSubmoduleConfigurations: false, 
                               extensions: [], 
                               submoduleCfg: [], 
-                              userRemoteConfigs: [[credentialsId: 'jenkins-git', url: 'https://github.com/tensanbaby/Car-web.git']]])
+                              userRemoteConfigs: [[credentialsId: 'jenkins-git', url: 'https://github.com/tensanbaby/terraform.git']]])
                 }
             }
         }
