@@ -6,7 +6,7 @@ pipeline {
         AWS_ACCESS_KEY_ID      = credentials('aws-access-key-id')
         AWS_SECRET_ACCESS_KEY  = credentials('aws-secret-access-key')
         AWS_DEFAULT_REGION     = 'us-east-1'  // Set AWS region
-        TF_WORKSPACE           = 'terraform'  // Define the Terraform working directory, adjust as needed
+        //TF_WORKSPACE           = 'terraform'  // Define the Terraform working directory, adjust as needed
     }
 
     stages {
