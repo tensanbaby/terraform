@@ -1,4 +1,4 @@
-   pipeline {
+pipeline {
     agent any
 
     parameters {
@@ -22,13 +22,18 @@
             }
         }
 
+        stage('Terraform Validation') {
+            steps {
+                dir('terraform') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
         stage('Terraform Initialization') {
             steps {
                 dir('terraform') {
-                    withCredentials([string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'), 
-                                     string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')]) {
-                        sh 'terraform init'
-                    }
+                    sh 'terraform init'
                 }
             }
         }
@@ -44,6 +49,7 @@
                         } else if (params.TERRAFORM_ACTION == 'plan') {
                             sh 'terraform plan'
                         } else {
+                            echo "Invalid Terraform action selected: ${params.TERRAFORM_ACTION}"
                             error "Invalid Terraform action selected: ${params.TERRAFORM_ACTION}"
                         }
                     }
@@ -54,12 +60,13 @@
 
     post {
         always {
-            // Clean up workspace after pipeline execution
             cleanWs()
         }
     }
 
     options {
+        timeout(time: 30, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 }
+
