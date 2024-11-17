@@ -17,7 +17,7 @@
         stage('Checkout Version Control') {
             steps {
                 dir('terraform') {
-                    checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[credentialsId: 'Github-Integration', url: 'https://github.com/cloudcastle443/EKS-Cluster-Terraform.git']]])
+                    checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[credentialsId: 'Github-Integration', url: 'https://github.com/tensanbaby/terraform.git']]])
                 }
             }
         }
