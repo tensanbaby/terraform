@@ -1,61 +1,52 @@
-pipeline {
+   pipeline {
     agent any
 
+    parameters {
+        choice(name: 'TERRAFORM_ACTION', choices: ['apply', 'destroy', 'plan'], description: 'Select Terraform action to perform')
+        string(name: 'USER_NAME', defaultValue: 'Admin', description: 'Specify who is running the code')
+    }
+
     environment {
-        // AWS Credentials - Ensure 'aws-access-key-id' and 'aws-secret-access-key' are Jenkins credentials
-        AWS_ACCESS_KEY_ID      = credentials('aws-access-key-id')
-        AWS_SECRET_ACCESS_KEY  = credentials('aws-secret-access-key')
-        AWS_DEFAULT_REGION     = 'us-east-1'  // Set AWS region
-        //TF_WORKSPACE           = 'terraform'  // Define the Terraform working directory, adjust as needed
+        AWS_ACCESS_KEY_ID     = credentials('aws_access_key_id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws_secret_access_key')
+        AWS_DEFAULT_REGION    = 'us-east-1'
+        TF_VAR_aws_region     = 'us-east-1'
     }
 
     stages {
-        stage('Checkout Application Code') {
+        stage('Checkout Version Control') {
             steps {
-                script {
-                    // Checkout application code from the specified Git repository
-                    checkout([$class: 'GitSCM', 
-                              branches: [[name: '*/main']], 
-                              doGenerateSubmoduleConfigurations: false, 
-                              extensions: [], 
-                              submoduleCfg: [], 
-                              userRemoteConfigs: [[credentialsId: 'jenkins-git', url: 'https://github.com/tensanbaby/terraform.git']]])
+                dir('terraform') {
+                    checkout([$class: 'GitSCM', branches: [[name: '*/main']], userRemoteConfigs: [[credentialsId: 'Github-Integration', url: 'https://github.com/cloudcastle443/EKS-Cluster-Terraform.git']]])
                 }
             }
         }
 
-        stage('Initialize Terraform') {
+        stage('Terraform Initialization') {
             steps {
-                dir("${TF_WORKSPACE}") {  // Navigate to Terraform workspace
-                    echo 'Initializing Terraform...'
-                    sh 'terraform init'
+                dir('terraform') {
+                    withCredentials([string(credentialsId: 'aws_access_key_id', variable: 'AWS_ACCESS_KEY_ID'), 
+                                     string(credentialsId: 'aws_secret_access_key', variable: 'AWS_SECRET_ACCESS_KEY')]) {
+                        sh 'terraform init'
+                    }
                 }
             }
         }
 
-        stage('Validate Terraform Configuration') {
+        stage('Terraform Action Selector') {
             steps {
-                dir("${TF_WORKSPACE}") {
-                    echo 'Validating Terraform files...'
-                    sh 'terraform validate'
-                }
-            }
-        }
-
-        stage('Plan Terraform') {
-            steps {
-                dir("${TF_WORKSPACE}") {
-                    echo 'Planning Terraform deployment...'
-                    sh 'terraform plan -out=tfplan'
-                }
-            }
-        }
-
-        stage('Apply Terraform') {
-            steps {
-                dir("${TF_WORKSPACE}") {
-                    echo 'Applying Terraform configuration...'
-                    sh 'terraform apply -auto-approve tfplan'
+                dir('terraform') {
+                    script {
+                        if (params.TERRAFORM_ACTION == 'apply') {
+                            sh 'terraform apply -auto-approve'
+                        } else if (params.TERRAFORM_ACTION == 'destroy') {
+                            sh 'terraform destroy -auto-approve'
+                        } else if (params.TERRAFORM_ACTION == 'plan') {
+                            sh 'terraform plan'
+                        } else {
+                            error "Invalid Terraform action selected: ${params.TERRAFORM_ACTION}"
+                        }
+                    }
                 }
             }
         }
@@ -63,16 +54,12 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up workspace...'
-            cleanWs()  // Clean up workspace after the pipeline finishes
-        }
-        success {
-            echo 'Terraform deployment completed successfully!'
-        }
-        failure {
-            echo 'Terraform deployment failed. Please check the logs.'
+            // Clean up workspace after pipeline execution
+            cleanWs()
         }
     }
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
 }
-
-
